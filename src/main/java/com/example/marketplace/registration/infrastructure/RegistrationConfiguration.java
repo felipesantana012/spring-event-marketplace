@@ -2,9 +2,9 @@ package com.example.marketplace.registration.infrastructure;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.boot.jpa.autoconfigure.JpaProperties;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -34,10 +34,11 @@ public class RegistrationConfiguration {
 
     @Primary
     @Bean
-    @ConfigurationProperties("registration.datasource.configuration")
     public HikariDataSource registrationDataSource(
             @Qualifier("registrationDataSourceProperties") DataSourceProperties properties) {
-        return properties.initializeDataSourceBuilder().type(HikariDataSource.class).build();
+        return properties.initializeDataSourceBuilder()
+                .type(HikariDataSource.class)
+                .build();
     }
 
     @Primary

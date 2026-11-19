@@ -1,30 +1,33 @@
 package com.example.marketplace.catalog.infrastructure.event;
 
-import com.example.marketplace.catalog.infrastructure.persistence.entity.Event;
 import com.example.marketplace.catalog.infrastructure.persistence.entity.EventMetadata;
-import jakarta.persistence.PostPersist;
-import jakarta.persistence.PostRemove;
-import jakarta.persistence.PostUpdate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.example.marketplace.common.infrastructure.event.dto.EventUpdated;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.mongodb.core.mapping.event.AbstractMongoEventListener;
 import org.springframework.data.mongodb.core.mapping.event.AfterDeleteEvent;
 import org.springframework.data.mongodb.core.mapping.event.AfterSaveEvent;
 import org.springframework.stereotype.Component;
 
+@Slf4j
 @Component
 public class EventMetadataEventListener extends AbstractMongoEventListener<EventMetadata> {
 
-    private static final Logger logger = LoggerFactory.getLogger(EventMetadataEventListener.class);
+    private final ApplicationEventPublisher publisher;
+
+    public EventMetadataEventListener(ApplicationEventPublisher publisher) {
+        this.publisher = publisher;
+    }
 
     @Override
     public void onAfterSave(AfterSaveEvent<EventMetadata> event){
-        logger.info("Event metadata save via onAfterSave: {}", event.getDocument());
+        log.info("Event metadata save via onAfterSave: {}", event.getDocument());
+        this.publisher.publishEvent(EventUpdated.from(event.getSource()));
     }
 
     @Override
     public void onAfterDelete(AfterDeleteEvent<EventMetadata> event){
-        logger.info("Event metadata delete via onAfterDelete: {}", event.getDocument());
+        log.info("Event metadata delete via onAfterDelete: {}", event.getDocument());
     }
 
 }

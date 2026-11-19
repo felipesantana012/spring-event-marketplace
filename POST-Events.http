@@ -1,0 +1,16 @@
+###
+POST http://localhost:8080/events
+Accept: application/json
+
+{
+ "date": "1970-08-10T04:53:46Z",
+ "title": "Testando showcase 8"
+}
+
+<> 2026-11-19T140223.201.json
+<> 2026-11-19T135745.201.json
+<> 2026-11-19T125745.201.json
+<> 2026-11-19T125604.201.json
+<> 2026-11-19T125427.400.json
+<> 2026-11-19T125328.400.json
+<> 2026-11-19T125237.400.json

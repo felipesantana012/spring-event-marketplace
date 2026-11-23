@@ -40,7 +40,7 @@ services:
     volumes:
       - metadata_data:/data/db
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongos --host localhost:27017/test --quiet
+      test: [ "CMD-SHELL", "mongosh --quiet --eval 'quit(db.runCommand({ ping: 1 }).ok ? 0 : 2)'"]
       interval: 5s
       timeout: 5s
       retries: 5

@@ -23,5 +23,5 @@ public class Sector {
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "sector_id")
-    private List<Seat> sectors = new ArrayList<>();
+    private List<Seat> seats = new ArrayList<>();
 }

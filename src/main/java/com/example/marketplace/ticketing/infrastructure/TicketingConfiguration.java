@@ -3,6 +3,7 @@ package com.example.marketplace.ticketing.infrastructure;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceProperties;
 import org.springframework.boot.jpa.EntityManagerFactoryBuilder;
@@ -10,6 +11,12 @@ import org.springframework.boot.jpa.autoconfigure.JpaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.repository.configuration.EnableRedisRepositories;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
@@ -20,6 +27,7 @@ import java.util.LinkedHashMap;
 
 @Configuration(proxyBeanMethods = false)
 @EnableJpaRepositories(basePackages = "com.example.marketplace.ticketing", entityManagerFactoryRef = "ticketingEntityManagerFactory", transactionManagerRef = "ticketingTransactionManager")
+@EnableRedisRepositories(basePackages = "com.example.marketplace.ticketing", redisTemplateRef = "ticketingRedisTemplate")
 public class TicketingConfiguration {
 
     @Qualifier("ticketing")
@@ -63,6 +71,23 @@ public class TicketingConfiguration {
     @Bean()
     public PlatformTransactionManager ticketingTransactionManager(@Qualifier("ticketing") LocalContainerEntityManagerFactoryBean emf){
         return new JpaTransactionManager(emf.getObject());
+    }
+
+    @Qualifier("ticketing")
+    @Bean(defaultCandidate = false)
+    public RedisConnectionFactory ticketingRedisConnectionFactory(
+            @Value("${ticketing.redis.host}") String hostName,
+            @Value("${ticketing.redis.port}") int port) {
+        return new LettuceConnectionFactory(new RedisStandaloneConfiguration(hostName, port));
+    }
+
+    @Qualifier("ticketing")
+    @Bean
+    public RedisTemplate<?, ?> ticketingRedisTemplate(
+            @Qualifier("ticketing") RedisConnectionFactory connectionFactory) {
+        RedisTemplate<byte[], byte[]> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+        return template;
     }
 
 

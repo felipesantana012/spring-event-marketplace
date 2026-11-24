@@ -1,169 +1,86 @@
-# Marketplace
+# Marketplace de eventos
 
-Projeto didático desenvolvido para praticar Java e Spring Boot por meio da construção de um marketplace de eventos. O foco está no aprendizado de organização arquitetural, Clean Code e recursos do ecossistema Spring que simplificam o desenvolvimento.
+Projeto didático em Java e Spring Boot que reúne cadastro de clientes, catálogo de eventos e seleção de assentos. Os módulos usam bancos de dados separados e comunicam mudanças por eventos internos da aplicação.
 
-## Objetivos de estudo
-
-- Separar domínio, aplicação, infraestrutura e persistência.
-- Praticar uma arquitetura inspirada em Clean Architecture/Ports and Adapters.
-- Trabalhar com múltiplos bancos de dados no mesmo projeto.
-- Utilizar Spring Data JPA, Spring Data MongoDB e Spring Data REST.
-- Experimentar processamento assíncrono com `@Async`, `CompletableFuture` e threads virtuais.
-- Aplicar validação, auditoria, eventos de persistência e projeções.
-
-## Funcionalidades atuais
-
-- Cadastro de eventos.
-- Cadastro de metadados dos eventos, incluindo setores, preços e assentos.
-- Cadastro e consulta de clientes.
-- Endpoint de showcase que combina eventos do MySQL com seus metadados do MongoDB.
-- Enriquecimento assíncrono dos eventos antes da resposta do showcase.
-- Logs para acompanhar eventos de persistência e processamento.
-- Actuator para endpoints de monitoramento e saúde da aplicação.
-
-## Arquitetura resumida
-
-O projeto está organizado por contexto:
-
-```text
-src/main/java/com/example/marketplace
-├── catalog
-│   ├── application       # casos de uso, enriquecimento e DTOs
-│   ├── domain            # entidades e contratos de repositório
-│   └── infrastructure    # HTTP, JPA, MongoDB e eventos
-└── registration
-    ├── domain            # cliente e contrato de repositório
-    └── infrastructure    # configuração, persistência e projeções
-```
-
-O catálogo utiliza dois tipos de persistência:
-
-- **MySQL:** eventos do catálogo.
-- **MongoDB:** metadados dos eventos.
-
-O contexto de registration utiliza outro banco MySQL, separado do banco do catálogo. As configurações de `DataSource`, `EntityManagerFactory` e transações são definidas individualmente para cada contexto.
-
-## Principais endpoints
-
-Os endpoints de eventos, metadados e clientes são expostos pelo Spring Data REST. O endpoint implementado manualmente para consultar o showcase é:
-
-```text
-GET http://localhost:8080/showcase
-```
-
-Exemplos de endpoints expostos:
-
-```text
-POST http://localhost:8080/events
-POST http://localhost:8080/eventMetadatas
-GET  http://localhost:8080/events
-GET  http://localhost:8080/eventMetadatas
-GET  http://localhost:8080/customers
-```
-
-Para criar metadados, o campo `eventId` deve ser o mesmo UUID de um evento existente no banco de catálogo.
-
-## Tecnologias
-
-- Java 25
-- Spring Boot 4
-- Spring Web
-- Spring Data JPA
-- Spring Data MongoDB
-- Spring Data REST
-- Spring Boot Actuator
-- MySQL
-- MongoDB
-- Gradle
-- Docker Compose
-- Lombok
-
-## Como executar e testar
-
-### Pré-requisitos
+## Requisitos
 
 - JDK 25
-- Docker e Docker Compose
+- Docker com Docker Compose
 - Git
-- Cliente HTTP, como IntelliJ HTTP Client, Postman ou `curl`
+- Um cliente HTTP, como Postman, IntelliJ HTTP Client ou `curl`
 
-### 1. Baixar o projeto
+Não é necessário instalar Gradle: o projeto inclui o Gradle Wrapper.
 
-Clone o repositório e entre na pasta do projeto:
+## Preparar e iniciar
+
+Clone o projeto e entre na pasta:
 
 ```bash
 git clone <URL_DO_REPOSITORIO>
 cd marketplace
 ```
 
-No Windows PowerShell:
-
-```powershell
-git clone <URL_DO_REPOSITORIO>
-Set-Location marketplace
-```
-
-### 2. Subir os bancos de dados
-
-Na raiz do projeto, execute:
+Inicie os bancos e caches definidos em `compose.yaml`:
 
 ```bash
 docker compose up -d
-```
-
-Confira se os containers estão em execução:
-
-```bash
 docker compose ps
 ```
 
-### 3. Executar a aplicação
+Espere os serviços ficarem saudáveis antes de iniciar a aplicação. O Compose automático do Spring está desativado neste projeto; por isso, inicie os containers manualmente.
 
-Linux/macOS:
+| Serviço | Porta local | Uso |
+|---|---:|---|
+| MySQL de clientes (registration) | 3307 | Cadastro de clientes |
+| MySQL do catálogo | 3308 | Eventos |
+| MongoDB | 27018 | Metadados, setores e assentos |
+| Redis do catálogo | 6380 | Cache do catálogo |
+| PostgreSQL de ticketing | 5433 | Eventos e clientes sincronizados; dados de ticketing |
+| Redis de ticketing | 6381 | Bloqueios temporários de assentos |
 
-```bash
-./gradlew bootRun
-```
+As credenciais locais definidas no `compose.yaml` são `app`/`app` para MySQL e PostgreSQL. MongoDB e Redis usam a configuração local sem autenticação. Se alguma dessas portas já estiver ocupada, altere o mapeamento em `compose.yaml` e a porta correspondente em `src/main/resources/application.properties`.
 
-Windows PowerShell:
+Inicie a aplicação em outro terminal, na raiz do projeto:
+
+**Windows PowerShell**
 
 ```powershell
 .\gradlew.bat bootRun
 ```
 
-Ao iniciar, a aplicação ficará disponível em `http://localhost:8080`.
+**Linux/macOS**
 
-Os serviços definidos no `compose.yaml` utilizam:
+```bash
+./gradlew bootRun
+```
 
-| Serviço | Porta |
-|---|---:|
-| MySQL registration | 3307 |
-| MySQL catalog | 3308 |
-| MongoDB metadata | 27018 |
+A API ficará disponível em `http://localhost:8080`. Verifique a inicialização em:
 
-O Spring Boot também está configurado para gerenciar o ciclo de vida do Docker Compose durante o desenvolvimento.
+```text
+GET http://localhost:8080/actuator/health
+```
 
-### 4. Criar um evento
+## Testar o fluxo de ponta a ponta
 
-Crie um evento usando o Spring Data REST:
+Os exemplos abaixo podem ser enviados no Postman ou IntelliJ HTTP Client. Também funcionam com `curl` (no Windows, use `curl.exe`). Os repositórios REST retornam respostas HAL; use o `id` retornado na resposta de cada criação.
+
+### 1. Criar um evento
 
 ```http
 POST http://localhost:8080/events
 Content-Type: application/json
 
 {
-  "date": "2026-12-10T20:00:00Z",
-  "title": "Evento de teste"
+  "title": "Show de teste",
+  "date": "2026-12-10T20:00:00Z"
 }
 ```
 
-Copie o UUID retornado no campo `id`. Ele será usado para relacionar os metadados ao evento.
+Guarde o `id` do evento para a próxima etapa.
 
-Também é possível usar o arquivo `POST-Events.http` no IntelliJ HTTP Client.
+### 2. Cadastrar os metadados, setores e assentos
 
-### 5. Criar os metadados do evento
-
-Substitua `<EVENT_ID>` pelo UUID copiado na etapa anterior:
+Substitua `<EVENT_ID>` pelo ID do evento criado. O nome de cada setor em `sectorName` deve corresponder a um `name` em `sectors`.
 
 ```http
 POST http://localhost:8080/eventMetadatas
@@ -171,15 +88,15 @@ Content-Type: application/json
 
 {
   "eventId": "<EVENT_ID>",
-  "eventDescription": "Evento criado para validar o showcase",
+  "eventDescription": "Evento de demonstração",
   "sectors": [
     {
       "name": "vip",
-      "price": 90.0
+      "price": 90.00
     },
     {
       "name": "pista",
-      "price": 50.0
+      "price": 50.00
     }
   ],
   "seats": [
@@ -199,53 +116,85 @@ Content-Type: application/json
 }
 ```
 
-O `eventId` precisa ser exatamente o mesmo UUID de um evento existente no MySQL de catálogo.
+Ao salvar os metadados, a aplicação publica um evento interno e o módulo de ticketing sincroniza os setores e assentos de forma assíncrona. Aguarde alguns segundos antes de tentar selecionar um assento.
 
-### 6. Consultar e validar o showcase
+### 3. Cadastrar um cliente
 
-Consulte os eventos enriquecidos:
+```http
+POST http://localhost:8080/customers
+Content-Type: application/json
+
+{
+  "firstName": "Ana",
+  "lastName": "Silva",
+  "email": "ana.silva@example.com"
+}
+```
+
+Guarde o `id` do cliente retornado; ele será enviado no cabeçalho da próxima requisição.
+
+### 4. Selecionar um assento
+
+Substitua `<EVENT_ID>` pelo ID usado nos metadados e `<CUSTOMER_ID>` pelo ID do cliente. O valor de `id` no corpo é o código do assento (`code`) cadastrado nos metadados.
+
+```http
+POST http://localhost:8080/ticketing/events/<EVENT_ID>/seats/select
+Content-Type: application/json
+X-CUSTOMER-ID: <CUSTOMER_ID>
+
+{
+  "id": "A1"
+}
+```
+
+Uma seleção aceita retorna `201 Created`. Um assento inexistente retorna `404 Not Found`; um assento já bloqueado retorna `423 Locked`. O bloqueio temporário expira após aproximadamente 30 segundos.
+
+### 5. Consultar o catálogo
 
 ```http
 GET http://localhost:8080/showcase
 Accept: application/json
 ```
 
-A resposta deve conter o evento criado e seus metadados. O enriquecimento é realizado de forma assíncrona antes da resposta.
+Outros endpoints REST disponíveis incluem `GET /events`, `GET /eventMetadatas` e `GET /customers`.
 
-Também é possível verificar a saúde da aplicação:
+## Testes automatizados
 
-```http
-GET http://localhost:8080/actuator/health
-```
+Com os serviços do Compose em execução, rode:
 
-### 7. Executar os testes automatizados
-
-Linux/macOS:
-
-```bash
-./gradlew test
-```
-
-Windows PowerShell:
+**Windows PowerShell**
 
 ```powershell
 .\gradlew.bat test
 ```
 
-### 8. Parar os bancos
+**Linux/macOS**
 
-Quando terminar os testes:
+```bash
+./gradlew test
+```
+
+## Encerrar o ambiente
+
+Para parar os containers sem apagar os dados persistidos:
 
 ```bash
 docker compose down
 ```
 
-Para remover também os dados persistidos nos volumes, use somente se quiser reiniciar o ambiente:
+Para apagar também os volumes e todos os dados locais desses bancos, use:
 
 ```bash
 docker compose down -v
 ```
 
-## Observações
+> **Atenção:** `docker compose down -v` remove os dados armazenados nos volumes do projeto.
 
-O projeto está em evolução e tem finalidade principalmente educacional. Algumas partes são experimentais, especialmente a composição de dados entre bancos, o processamento assíncrono e a configuração de múltiplos contextos JPA. A propriedade `hibernate.hbm2ddl.auto` está configurada como `update` para preservar os dados durante os reinícios em desenvolvimento.
+## Estrutura e tecnologias
+
+- **Java 25**, **Spring Boot 4** e **Gradle**
+- **Registration:** clientes em MySQL
+- **Catalog:** eventos em MySQL e metadados em MongoDB
+- **Ticketing:** dados de clientes, eventos, setores e assentos em PostgreSQL; bloqueios temporários em Redis
+- **Spring Data REST** para recursos de cadastro e **Spring Web** para showcase e seleção de assentos
+- Eventos internos assíncronos para sincronizar clientes e metadados com ticketing
